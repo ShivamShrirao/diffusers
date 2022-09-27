@@ -11,11 +11,15 @@ accelerate launch train_dreambooth.py \
   --with_prior_preservation \
   --instance_prompt="photo of sks guy" \
   --class_prompt="photo of a guy" \
-  --resolution=512 \
+  --resolution=256 \
   --train_batch_size=1 \
-  --gradient_accumulation_steps=1 \
+  --sample_batch_size 1 \
+  --gradient_accumulation_steps=4 \
   --learning_rate=5e-6 \
   --lr_scheduler="constant" \
   --lr_warmup_steps=0 \
   --num_class_images=200 \
-  --max_train_steps=800
+  --max_train_steps=800 \
+  --use_8bit_adam \
+  --gradient_checkpointing \
+  --mixed_precision bf16
