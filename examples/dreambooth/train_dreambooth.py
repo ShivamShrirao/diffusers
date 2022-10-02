@@ -372,7 +372,8 @@ def main():
                 args.pretrained_model_name_or_path, use_auth_token=args.use_auth_token, torch_dtype=torch_dtype
             )
             pipeline.set_progress_bar_config(disable=True)
-
+            pipeline.enable_attention_slicing(1) #I think this is the max memory reduction
+            
             num_new_images = args.num_class_images - cur_class_images
             logger.info(f"Number of class images to sample: {num_new_images}.")
 
