@@ -188,6 +188,14 @@ def parse_args():
     )
     parser.add_argument("--not_cache_latents", action="store_true", help="Do not precompute and cache latents from VAE.")
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
+    parser.add_argument(
+        "--save_training_info",
+         action="store_true", 
+         help=(
+            "Saves dreambooth_info.json into the output directory with"
+            " info about how the model was trained"
+        ),
+    )
 
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
@@ -348,7 +356,7 @@ def main():
         log_with="tensorboard",
         logging_dir=logging_dir,
     )
-
+    
     if args.seed is not None:
         set_seed(args.seed)
 
@@ -457,6 +465,14 @@ def main():
         size=args.resolution,
         center_crop=args.center_crop,
     )
+
+    if args.save_training_info:
+        import json
+        with open(os.path.join(args.output_dir, "dreambooth_info.json"), 'w') as f:
+            model_info = vars(args)
+            model_info["num_instance_images"] = vars(train_dataset).get("num_instance_images", "")
+            model_info["num_class_images"] = vars(train_dataset).get("num_class_images", "")
+            json.dump(model_info, f, indent=2)
 
     def collate_fn(examples):
         input_ids = [example["instance_prompt_ids"] for example in examples]
