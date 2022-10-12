@@ -22,5 +22,5 @@ accelerate launch train_dreambooth.py \
   --lr_warmup_steps=0 \
   --num_class_images=50 \
   --sample_batch_size=4 \
-  --max_train_steps=10 \
+  --max_train_steps=1000 \
   --save_training_info
