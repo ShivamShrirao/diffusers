@@ -1,12 +1,11 @@
 python scripts/train_epoch.py \
-    --train_path=../models/alvan \
     --source_path=../data/alvan \
-    --base_checkpoint=sd-v1-4.ckpt \
     --class_path=../data/dog \
     --instance_prompt="photo of sks dog" \
     --class_prompt="photo of a dog" \
-    --export_path="../stable-diffusion-webui/models/Stable-diffusion" \
-    --export_name alvan \
     --learn_rate=1e-6 \
-    --steps=1000
-    --n_epochs=5
+    --steps=1000 \
+    --n_epochs=5 \
+    --model_name alvan \
+    --base_checkpoint=sd-v1-4.ckpt \
+    --export_path="../stable-diffusion-webui/models/Stable-diffusion" 

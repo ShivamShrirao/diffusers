@@ -6,13 +6,15 @@ import re
 import os
 from multiprocessing import cpu_count
 
+default_model_path = Path("../models")
+
 epoch_regex = re.compile("epoch_(\d+)")
 
 parser = ArgumentParser(description="Train an epoch and automatically export the resulting ckpt file")
-parser.add_argument("--train_path", type=Path, required=True, help="directory where the model is stored, and where training will take place")
 parser.add_argument("--source_path", type=Path, required=True, help="directory where source images will be taken from")
+parser.add_argument("--train_path", type=Path, help="directory where the model is stored, and where training will take place")
 parser.add_argument("--export_path", type=Path, help="Directory to export the resulting ckpt file to from the last trained epoch")
-parser.add_argument("--export_name", type=str, help="Name of the exported output model, without the ckpt extension")
+parser.add_argument("--model_name", type=str, help="Name of the model, used to create the training folder, and to create the export file name")
 parser.add_argument("--instance_prompt", type=str, required=True, help="prompt to trigger the model with the newly trained data")
 parser.add_argument("--class_prompt", type=str, help="prompt to use when identifying class samples")
 parser.add_argument("--class_path", type=Path, help="directory where class images will be taken from")
@@ -34,6 +36,12 @@ def execute(args):
 def print_arglist(args): print("\n".join(f"    {a}" for a in args))
 
 def main(args):
+    if args.train_path == None:
+        if args.model_name != None:
+            args.train_path = default_model_path / args.model_name
+        else:
+            raise ValueError("Please provide model name via --model_name if no train path is specified")
+
     os.makedirs(str(args.train_path.resolve()), exist_ok=True)
     if not any(path for path in args.train_path.iterdir() if path.is_dir() and epoch_regex.match(path.name) != None):
         if args.base_checkpoint != None:
@@ -107,8 +115,8 @@ def main(args):
             continue
 
         # export the epoch
-        if None not in [args.export_path, args.export_name]:
-            full_export_path = args.export_path / f"{args.export_name}_e{new_epoch_num}.ckpt"
+        if None not in [args.export_path, args.model_name]:
+            full_export_path = args.export_path / f"{args.model_name}_e{new_epoch_num}.ckpt"
             export_args = [
                 "python",
                 "convert_diffusers_to_original_stable_diffusion.py",
