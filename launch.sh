@@ -1,4 +1,4 @@
-python train_epoch.py \
+python scripts/train_epoch.py \
     --train_path=../models/alvan \
     --source_path=../data/alvan \
     --base_checkpoint=sd-v1-4.ckpt \
