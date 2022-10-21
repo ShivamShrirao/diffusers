@@ -1,3 +1,11 @@
+This fork adds a script at `scripts/train_epoch.py` that allows the automation of rapid checkpoint saving and prototyping, by automatically converting from a given .ckpt file to the diffusers format, training a number of epochs, and saving each one back to a .ckpt in a desired location.
+
+Refer to the `launch.sh` file in the root to get an idea of how to use this new script.
+
+Original readme cont. below...
+
+<hr>
+
 <p align="center">
     <br>
     <img src="https://github.com/huggingface/diffusers/raw/main/docs/source/imgs/diffusers_library.jpg" width="400"/>
