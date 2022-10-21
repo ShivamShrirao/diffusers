@@ -37,8 +37,7 @@ from diffusers import (
     UNet2DConditionModel,
 )
 from diffusers.pipelines.latent_diffusion.pipeline_latent_diffusion import LDMBertConfig, LDMBertModel
-from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
-from transformers import AutoFeatureExtractor, BertTokenizerFast, CLIPTextModel, CLIPTokenizer
+from transformers import BertTokenizerFast, CLIPTextModel, CLIPTokenizer
 
 
 def shave_segments(path, n_shave_prefix_segments=1):
@@ -595,22 +594,6 @@ def convert_ldm_bert_checkpoint(checkpoint, config):
     return hf_model
 
 
-def convert_ldm_clip_checkpoint(checkpoint):
-    text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
-
-    keys = list(checkpoint.keys())
-
-    text_model_dict = {}
-
-    for key in keys:
-        if key.startswith("cond_stage_model.transformer"):
-            text_model_dict[key[len("cond_stage_model.transformer.") :]] = checkpoint[key]
-
-    text_model.load_state_dict(text_model_dict)
-
-    return text_model
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -684,18 +667,14 @@ if __name__ == "__main__":
     # Convert the text model.
     text_model_type = original_config.model.params.cond_stage_config.target.split(".")[-1]
     if text_model_type == "FrozenCLIPEmbedder":
-        text_model = convert_ldm_clip_checkpoint(checkpoint)
+        text_model = CLIPTextModel.from_pretrained("openai/clip-vit-large-patch14")
         tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-#         safety_checker = StableDiffusionSafetyChecker.from_pretrained("CompVis/stable-diffusion-safety-checker")
-#         feature_extractor = AutoFeatureExtractor.from_pretrained("CompVis/stable-diffusion-safety-checker")
         pipe = StableDiffusionPipeline(
             vae=vae,
             text_encoder=text_model,
             tokenizer=tokenizer,
             unet=unet,
             scheduler=scheduler,
-#             safety_checker=safety_checker,
-#             feature_extractor=feature_extractor,
         )
     else:
         text_config = create_ldm_bert_config(original_config)
