@@ -6,7 +6,10 @@ import re
 import os
 from multiprocessing import cpu_count
 
-default_model_path = Path("../models")
+def relpath(path):
+    return (Path(__file__).parent / path).resolve()
+
+default_model_path = relpath("../models")
 
 epoch_regex = re.compile("epoch_(\d+)")
 
@@ -25,7 +28,7 @@ parser.add_argument("--seed", type=int, default=3434554, help="training seed")
 parser.add_argument("--n_epochs", type=int, default=1, help="number of epochs to run and generate checkpoints for")
 
 def execute(args):
-    with Popen(args, stdout=PIPE, stderr=STDOUT, bufsize=1, shell=True, universal_newlines=True) as p:
+    with Popen(args, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as p:
         for line in p.stdout:
             print(line, end='')
         
@@ -48,7 +51,7 @@ def main(args):
             # no existing epoch exists, create epoch_0 from the provided checkpoint
             base_epoch_path = args.train_path / 'epoch_0'
             create_base_epoch_args = [
-                "python", "convert_original_stable_diffusion_to_diffusers.py",
+                "python", relpath("convert_original_stable_diffusion_to_diffusers.py"),
                 f"--checkpoint_path={args.base_checkpoint}",
                 f"--dump_path={base_epoch_path}"
             ]
@@ -77,7 +80,7 @@ def main(args):
         train_args = [
             "accelerate", "launch",
             f"--num_cpu_threads_per_process={cpu_count()}",
-            "../examples/dreambooth/train_dreambooth.py",
+            relpath("../examples/dreambooth/train_dreambooth.py"),
             f"--pretrained_model_name_or_path={old_epoch_path}",
             f"--instance_data_dir={args.source_path}",
             f"--output_dir={new_epoch_path}",
@@ -119,7 +122,7 @@ def main(args):
             full_export_path = args.export_path / f"{args.model_name}_e{new_epoch_num}.ckpt"
             export_args = [
                 "python",
-                "convert_diffusers_to_original_stable_diffusion.py",
+                relpath("convert_diffusers_to_original_stable_diffusion.py"),
                 f"--model_path={new_epoch_path}",
                 f"--checkpoint_path={full_export_path}"
             ]
