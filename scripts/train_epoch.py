@@ -26,10 +26,22 @@ parser.add_argument("--steps", type=int, default=1000, help="number of training 
 parser.add_argument("--seed", type=int, default=3434554, help="training seed")
 parser.add_argument("--n_epochs", type=int, default=1, help="number of epochs to run and generate checkpoints for")
 
-def execute(args):
-    with Popen(args, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as p:
-        for line in p.stdout:
-            print(line, end='')
+def execute(args, shell=False):
+    if shell:
+        args = " ".join(f'"{a}"' for a in args)
+    with Popen(args, stdout=PIPE, stderr=STDOUT, shell=shell) as p:
+        buf = b""
+        while not p.stdout.closed:
+            buf += p.stdout.read(128)
+            flush = b""
+            for n in [b"\n", b"\r"]:
+                if n in buf:
+                    ind = len(buf) - buf[::-1].index(n) - 1
+                    new_flush, buf = buf[:ind], buf[ind:]
+                    flush += new_flush
+            if flush != b"":
+                print(flush.decode("utf-8"), end='')
+                flush = b""
         
         returncode = p.poll()
         if returncode != 0:
