@@ -32,7 +32,7 @@ def execute(args, shell=False):
     with Popen(args, stdout=PIPE, stderr=STDOUT, shell=shell) as p:
         buf = b""
         while not p.stdout.closed:
-            buf += p.stdout.read(128)
+            buf += p.stdout.read(8)
             flush = b""
             for n in [b"\n", b"\r"]:
                 if n in buf:
