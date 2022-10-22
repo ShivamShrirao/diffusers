@@ -1,5 +1,4 @@
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
-from sys import argv
 from argparse import ArgumentParser
 from pathlib import Path
 import re
@@ -134,6 +133,8 @@ def main(args):
             except CalledProcessError:
                 print("Error during model export")
                 continue
+    
+    print("Finished training!")
     
 if __name__ == "__main__":
     main(parser.parse_args())
