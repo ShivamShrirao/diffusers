@@ -32,7 +32,10 @@ def execute(args, shell=False):
     with Popen(args, stdout=PIPE, stderr=STDOUT, shell=shell) as p:
         buf = b""
         while not p.stdout.closed:
-            buf += p.stdout.read(8)
+            chunk = p.stdout.read(8)
+            if chunk == b'':
+                break
+            buf += chunk
             flush = b""
             for n in [b"\n", b"\r"]:
                 if n in buf:
@@ -42,6 +45,7 @@ def execute(args, shell=False):
             if flush != b"":
                 print(flush.decode("utf-8"), end='')
                 flush = b""
+        print(buf.decode('utf-8'))
         
         returncode = p.poll()
         if returncode != 0:
