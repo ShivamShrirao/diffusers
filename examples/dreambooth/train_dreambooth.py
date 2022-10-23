@@ -40,7 +40,6 @@ def parse_args():
         "--pretrained_vae_name_or_path",
         type=str,
         default=None,
-        required=True,
         help="Path to pretrained vae or vae identifier from huggingface.co/models.",
     )
     parser.add_argument(
