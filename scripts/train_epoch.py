@@ -22,6 +22,7 @@ parser.add_argument("--instance_prompt", type=str, required=True, help="prompt t
 parser.add_argument("--class_prompt", type=str, help="prompt to use when identifying class samples")
 parser.add_argument("--class_path", type=Path, help="directory where class images will be taken from")
 parser.add_argument("--base_checkpoint", type=Path, default=None, help="path to a checkpoint file to start training from if this is the first epoch")
+parser.add_argument("--vae_path", type=Path, help="Path to the pretrained vae of the chosen model")
 parser.add_argument("--learn_rate", type=float, default=1e-6, help="learning rate of the training")
 parser.add_argument("--steps", type=int, default=1000, help="number of training steps to perform")
 parser.add_argument("--seed", type=int, default=3434554, help="training seed")
@@ -106,7 +107,16 @@ def main(args):
             new_epoch_num = old_epoch_num + 1
             old_epoch_path = args.train_path / f"epoch_{old_epoch_num}"
             new_epoch_path = args.train_path / f"epoch_{new_epoch_num}"
-            print(f"Beginning training on epoch {new_epoch_num}" + ('' if args.n_epochs == 1 else f", {epoch+1}/{args.n_epochs}"))
+            vae_paths = []
+            if args.vae_path != None:
+                vae_paths.append(args.vae_path)
+            if args.base_checkpoint != None:
+                vae_paths.append(args.base_checkpoint.parent / f"{args.base_checkpoint.stem}.vae.pt")
+            if args.model_name != None:
+                vae_paths.append(Path(f"{args.model_name}.vae.pt"))
+            if not any(p.is_file() for p in vae_paths):
+                raise ValueError("Count not find vae file: please provide a link to an appropriate pretrained vae with --vae_path")
+            vae_path = next(p for p in vae_paths if p.is_file())
 
             train_args = [
                 "accelerate", "launch",
@@ -127,7 +137,8 @@ def main(args):
                 "--lr_scheduler=constant",
                 "--lr_warmup_steps=0",
                 "--sample_batch_size=4",
-                f"--max_train_steps={args.steps}"
+                f"--max_train_steps={args.steps}",
+                f"--pretrained_vae_name_or_path={vae_path}"
             ]
             if None not in [args.class_prompt, args.class_path]:
                 train_args.extend([
