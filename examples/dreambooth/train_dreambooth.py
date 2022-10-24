@@ -736,7 +736,7 @@ def main():
                 logs = {"loss": loss_avg.avg.item(), "lr": lr_scheduler.get_last_lr()[0]}
                 progress_bar.set_postfix(**logs)
                 accelerator.log(logs, step=global_step)
-            
+
             if global_step > args.save_min_steps and not global_step % args.save_interval:
                 save_weights(global_step)
 
