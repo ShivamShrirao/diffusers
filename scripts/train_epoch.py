@@ -22,7 +22,7 @@ parser.add_argument("--instance_prompt", type=str, required=True, help="prompt t
 parser.add_argument("--class_prompt", type=str, help="prompt to use when identifying class samples")
 parser.add_argument("--class_path", type=Path, help="directory where class images will be taken from")
 parser.add_argument("--base_checkpoint", type=Path, default=None, help="path to a checkpoint file to start training from if this is the first epoch")
-parser.add_argument("--vae_path", type=Path, help="(UNUSED) Path to the pretrained vae of the chosen model")
+parser.add_argument("--vae_name", type=Path, help="Name of the pretrained vae of the chosen model")
 parser.add_argument("--learn_rate", type=float, default=1e-6, help="learning rate of the training")
 parser.add_argument("--steps", type=int, default=1000, help="number of training steps to perform")
 parser.add_argument("--learning_rate_steps", nargs="?", default=1e-3, type=float, help="Learning-rate-steps, will override the default step value and use this to automatically determine the number of steps to perform based on the learning rate. Ex: a value of 1e-3 will result in 1000 steps with a learning rate of 1e-6, and 10000 with a learning rate of 1e-7.")
@@ -108,6 +108,7 @@ def main(args):
             new_epoch_num = old_epoch_num + 1
             old_epoch_path = args.train_path / f"epoch_{old_epoch_num}"
             new_epoch_path = args.train_path / f"epoch_{new_epoch_num}"
+            """
             vae_paths = []
             if args.vae_path != None:
                 vae_paths.append(args.vae_path)
@@ -119,6 +120,7 @@ def main(args):
             if not any(p.is_file() for p in vae_paths):
                 raise ValueError("Count not find vae file: please provide a link to an appropriate pretrained vae with --vae_path, or put it in the same directory as your base checkpoint.")
             vae_path = next(p for p in vae_paths if p.is_file())
+            """
             print(f"Beginning training on epoch {new_epoch_num}" + ('' if args.n_epochs == 1 else f", {epoch+1}/{args.n_epochs}"))
 
             steps = args.steps
@@ -130,8 +132,6 @@ def main(args):
                 f"--num_cpu_threads_per_process={cpu_count()}",
                 relpath("../examples/dreambooth/train_dreambooth.py"),
                 f"--pretrained_model_name_or_path={old_epoch_path}",
-                #f"--pretrained_vae_name_or_path={vae_path}", # will reimplement this properly at some point in the future maybe
-                "--pretrained_vae_name_or_path=None", # for now vaes are disabled 
                 f"--instance_data_dir={args.source_path}",
                 f"--output_dir={new_epoch_path}",
                 f"--instance_prompt={args.instance_prompt}",
@@ -148,6 +148,13 @@ def main(args):
                 "--sample_batch_size=4",
                 f"--max_train_steps={steps}"
             ]
+
+            if args.vae_name:
+                train_args.extend([
+                    f"--pretrained_vae_name_or_path={args.vae_name}",
+                    "--use_vae"
+                ])
+
             if None not in [args.class_prompt, args.class_path]:
                 train_args.extend([
                     f"--class_prompt={args.class_prompt}",
