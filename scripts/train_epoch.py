@@ -173,7 +173,8 @@ def main(args):
                 })
             except ValueError:
                 print("Detected a malformed model folder from a previously crashed or cancelled training session.")
-                rmtree(new_epoch_path)
+                if new_epoch_path.exists():
+                    rmtree(new_epoch_path)
                 if args.delete_malformed_models:
                     print(f"Deleting model folder {old_epoch_path}")
                     rmtree(old_epoch_path)
