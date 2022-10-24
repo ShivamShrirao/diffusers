@@ -22,9 +22,10 @@ parser.add_argument("--instance_prompt", type=str, required=True, help="prompt t
 parser.add_argument("--class_prompt", type=str, help="prompt to use when identifying class samples")
 parser.add_argument("--class_path", type=Path, help="directory where class images will be taken from")
 parser.add_argument("--base_checkpoint", type=Path, default=None, help="path to a checkpoint file to start training from if this is the first epoch")
-parser.add_argument("--vae_path", type=Path, help="Path to the pretrained vae of the chosen model")
+parser.add_argument("--vae_path", type=Path, help="(UNUSED) Path to the pretrained vae of the chosen model")
 parser.add_argument("--learn_rate", type=float, default=1e-6, help="learning rate of the training")
 parser.add_argument("--steps", type=int, default=1000, help="number of training steps to perform")
+parser.add_argument("--learning_rate_steps", nargs="?", default=1e-3, type=float, help="Learning-rate-steps, will override the default step value and use this to automatically determine the number of steps to perform based on the learning rate. Ex: a value of 1e-3 will result in 1000 steps with a learning rate of 1e-6, and 10000 with a learning rate of 1e-7.")
 parser.add_argument("--seed", type=int, default=3434554, help="training seed")
 parser.add_argument("--n_epochs", type=int, default=1, help="number of epochs to run and generate checkpoints for")
 parser.add_argument("--delete_malformed_models", action='store_true', help="Enable to allow the model to automatically delete the folders of malformed models that it detects")
@@ -114,15 +115,23 @@ def main(args):
                 vae_paths.append(args.base_checkpoint.parent / f"{args.base_checkpoint.stem}.vae.pt")
             if args.model_name != None:
                 vae_paths.append(Path(f"{args.model_name}.vae.pt"))
+            vae_paths.append(Path(f"sd-v1-4.vae.pt"))
             if not any(p.is_file() for p in vae_paths):
-                raise ValueError("Count not find vae file: please provide a link to an appropriate pretrained vae with --vae_path")
+                raise ValueError("Count not find vae file: please provide a link to an appropriate pretrained vae with --vae_path, or put it in the same directory as your base checkpoint.")
             vae_path = next(p for p in vae_paths if p.is_file())
+            print(f"Beginning training on epoch {new_epoch_num}" + ('' if args.n_epochs == 1 else f", {epoch+1}/{args.n_epochs}"))
+
+            steps = args.steps
+            if args.learning_rate_steps:
+                steps = int(args.learning_rate_steps / args.learn_rate)
 
             train_args = [
                 "accelerate", "launch",
                 f"--num_cpu_threads_per_process={cpu_count()}",
                 relpath("../examples/dreambooth/train_dreambooth.py"),
                 f"--pretrained_model_name_or_path={old_epoch_path}",
+                #f"--pretrained_vae_name_or_path={vae_path}", # will reimplement this properly at some point in the future maybe
+                "--pretrained_vae_name_or_path=None", # for now vaes are disabled 
                 f"--instance_data_dir={args.source_path}",
                 f"--output_dir={new_epoch_path}",
                 f"--instance_prompt={args.instance_prompt}",
@@ -137,8 +146,7 @@ def main(args):
                 "--lr_scheduler=constant",
                 "--lr_warmup_steps=0",
                 "--sample_batch_size=4",
-                f"--max_train_steps={args.steps}",
-                f"--pretrained_vae_name_or_path={vae_path}"
+                f"--max_train_steps={steps}"
             ]
             if None not in [args.class_prompt, args.class_path]:
                 train_args.extend([
@@ -146,14 +154,16 @@ def main(args):
                     "--with_prior_preservation", 
                     "--prior_loss_weight=1.0",
                     f"--class_data_dir={args.class_path}",
-                    f"--num_class_images={sum(1 for p in args.class_path.iterdir() if p.is_file())}"
+                    f"--num_class_images=50"
                 ])
             
             print("training with these args:")
             print_arglist(train_args)
 
             try:
-                execute(train_args, env={"LD_LIBRARY_PATH": "/usr/lib/wsl/lib"})
+                execute(train_args, env={
+                    "LD_LIBRARY_PATH": "/usr/lib/wsl/lib"
+                })
             except ValueError:
                 print("Detected a malformed model folder from a previously crashed or cancelled training session.")
                 rmtree(new_epoch_path)
