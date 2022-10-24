@@ -217,7 +217,7 @@ def parse_args():
     )
     parser.add_argument("--log_interval", type=int, default=10, help="Log every N steps.")
     parser.add_argument("--save_interval", type=int, default=10_000, help="Save weights every N steps.")
-    parser.add_argument("--save_min_steps", type=int, default=800, help="Start saving weights after N steps.")
+    parser.add_argument("--save_min_steps", type=int, default=0, help="Start saving weights after N steps.")
     parser.add_argument(
         "--mixed_precision",
         type=str,
@@ -737,7 +737,7 @@ def main():
                 progress_bar.set_postfix(**logs)
                 accelerator.log(logs, step=global_step)
             
-            if global_step > 0 and not global_step % args.save_interval and global_step >= args.save_min_steps:
+            if global_step > args.save_min_steps and not global_step % args.save_interval:
                 save_weights(global_step)
 
             progress_bar.update(1)
