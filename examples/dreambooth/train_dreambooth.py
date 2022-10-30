@@ -279,21 +279,21 @@ class DreamBoothDataset(Dataset):
         self.with_prior_preservation = with_prior_preservation
 
         self.instance_images_path = []
-        self.class_images_path = []
+        self.class_images_path_list = []
 
-        for concept in concepts_list:
-            inst_img_path = [(x, concept["instance_prompt"]) for x in Path(concept["instance_data_dir"]).iterdir() if x.is_file()]
+        self._length = 0
+        for concept_idx, concept in enumerate(concepts_list):
+            inst_img_path = [(x, concept["instance_prompt"], concept_idx) for x in Path(concept["instance_data_dir"]).iterdir() if x.is_file()]
             self.instance_images_path.extend(inst_img_path)
 
             if with_prior_preservation:
                 class_img_path = [(x, concept["class_prompt"]) for x in Path(concept["class_data_dir"]).iterdir() if x.is_file()]
-                self.class_images_path.extend(class_img_path[:concept.get('num_class_images', num_class_images)])
+                class_img_path_use = class_img_path[:concept.get('num_class_images', num_class_images)]
+                self.class_images_path_list.push(class_img_path_use)
+                self._length += max(inst_img_path, class_img_path_use)
 
         random.shuffle(self.instance_images_path)
         self.num_instance_images = len(self.instance_images_path)
-        self._length = self.num_instance_images
-        self.num_class_images = len(self.class_images_path)
-        self._length = max(self.num_class_images, self.num_instance_images)
 
         self.image_transforms = transforms.Compose(
             [
@@ -309,7 +309,7 @@ class DreamBoothDataset(Dataset):
 
     def __getitem__(self, index):
         example = {}
-        instance_path, instance_prompt = self.instance_images_path[index % self.num_instance_images]
+        instance_path, instance_prompt, concept_idx = self.instance_images_path[index % self.num_instance_images]
         instance_image = Image.open(instance_path)
         if not instance_image.mode == "RGB":
             instance_image = instance_image.convert("RGB")
@@ -322,7 +322,8 @@ class DreamBoothDataset(Dataset):
         ).input_ids
 
         if self.with_prior_preservation:
-            class_path, class_prompt = self.class_images_path[index % self.num_class_images]
+            class_images_path = self.class_images_path_list[concept_idx]
+            class_path, class_prompt = class_images_path[index % len(class_images_path)]
             class_image = Image.open(class_path)
             if not class_image.mode == "RGB":
                 class_image = class_image.convert("RGB")
