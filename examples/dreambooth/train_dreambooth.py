@@ -287,7 +287,7 @@ class DreamBoothDataset(Dataset):
 
             if with_prior_preservation:
                 class_img_path = [(x, concept["class_prompt"]) for x in Path(concept["class_data_dir"]).iterdir() if x.is_file()]
-                self.class_images_path.extend(class_img_path[:num_class_images])
+                self.class_images_path.extend(class_img_path[:concept.get('num_class_images', num_class_images)])
 
         random.shuffle(self.instance_images_path)
         self.num_instance_images = len(self.instance_images_path)
@@ -431,8 +431,9 @@ def main(args):
             class_images_dir = Path(concept["class_data_dir"])
             class_images_dir.mkdir(parents=True, exist_ok=True)
             cur_class_images = len(list(class_images_dir.iterdir()))
+            num_class_images = concept.get('num_class_images', args.num_class_images)
 
-            if cur_class_images < args.num_class_images:
+            if cur_class_images < num_class_images:
                 torch_dtype = torch.float16 if accelerator.device.type == "cuda" else torch.float32
                 if pipeline is None:
                     pipeline = StableDiffusionPipeline.from_pretrained(
@@ -448,7 +449,7 @@ def main(args):
                     pipeline.set_progress_bar_config(disable=True)
                     pipeline.to(accelerator.device)
 
-                num_new_images = args.num_class_images - cur_class_images
+                num_new_images = num_class_images - cur_class_images
                 logger.info(f"Number of class images to sample: {num_new_images}.")
 
                 sample_dataset = PromptDataset(concept["class_prompt"], num_new_images)
