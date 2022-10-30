@@ -290,7 +290,9 @@ class DreamBoothDataset(Dataset):
                 class_img_path = [(x, concept["class_prompt"]) for x in Path(concept["class_data_dir"]).iterdir() if x.is_file()]
                 class_img_path_use = class_img_path[:concept.get('num_class_images', num_class_images)]
                 self.class_images_path_list.push(class_img_path_use)
-                self._length += max(inst_img_path, class_img_path_use)
+                self._length += max(len(inst_img_path), len(class_img_path_use))
+            else:
+                self._length += len(inst_img_path)
 
         random.shuffle(self.instance_images_path)
         self.num_instance_images = len(self.instance_images_path)
