@@ -292,7 +292,7 @@ class CrossAttention(nn.Module):
             hidden_states = self._attention(query, key, value)
         else:
             hidden_states = self._sliced_attention(query, key, value, sequence_length, dim)
-        hidden_states = self.reshape_batch_dim_to_heads(hidden_states)
+
         return self.to_out(hidden_states)
 
     def _attention(self, query, key, value):
@@ -340,7 +340,9 @@ class CrossAttention(nn.Module):
                 attn_slice = torch.matmul(attn_slice, value[start_idx:end_idx])
 
             hidden_states[start_idx:end_idx] = attn_slice
-
+        
+        # reshape hidden_states
+        hidden_states = self.reshape_batch_dim_to_heads(hidden_states)
         return hidden_states
 
 
