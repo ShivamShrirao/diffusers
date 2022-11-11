@@ -409,6 +409,7 @@ def main(args):
         log_with="tensorboard",
         logging_dir=logging_dir,
     )
+    floating_point = torch.float32 if "16" not in args.mixed_precision else torch.float16
 
     # Currently, it's not possible to do gradient accumulation when training two models with accelerate.accumulate
     # This will be enabled soon in accelerate. For now, we don't allow gradient accumulation when training two models.
@@ -443,7 +444,7 @@ def main(args):
             cur_class_images = len(list(class_images_dir.iterdir()))
 
             if cur_class_images < args.num_class_images:
-                torch_dtype = torch.float16 if accelerator.device.type == "cuda" else torch.float32
+                torch_dtype = floating_point if accelerator.device.type == "cuda" else torch.float32
                 if pipeline is None:
                     pipeline = StableDiffusionPipeline.from_pretrained(
                         args.pretrained_model_name_or_path,
@@ -685,8 +686,8 @@ def main(args):
             scheduler = DDIMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", clip_sample=False, set_alpha_to_one=False)
             pipeline = StableDiffusionPipeline.from_pretrained(
                 args.pretrained_model_name_or_path,
-                unet=accelerator.unwrap_model(unet).to(torch.float16),
-                text_encoder=text_enc_model.to(torch.float16),
+                unet=accelerator.unwrap_model(unet).to(floating_point),
+                text_encoder=text_enc_model.to(floating_point),
                 vae=AutoencoderKL.from_pretrained(
                     args.pretrained_vae_name_or_path or args.pretrained_model_name_or_path,
                     subfolder=None if args.pretrained_vae_name_or_path else "vae",
@@ -694,7 +695,7 @@ def main(args):
                 ),
                 safety_checker=None,
                 scheduler=scheduler,
-                torch_dtype=torch.float16,
+                torch_dtype=floating_point,
                 revision=args.revision,
             )
             save_dir = os.path.join(args.output_dir, f"{step}")
