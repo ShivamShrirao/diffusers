@@ -252,6 +252,15 @@ def parse_args(input_args=None):
         default=None,
         help="Path to json containing multiple concepts, will overwrite parameters like instance_prompt, class_prompt, etc.",
     )
+    parser.add_argument(
+        "--image_captions",
+        default=False,
+        action="store_true",
+        help=(
+            "The instance prompt is set on a per image basis and the caption is taken from the image's filename itself,"
+            " using all the text before the first '.' in each image's filename."
+        ),
+    )
 
     if input_args is not None:
         args = parser.parse_args(input_args)
@@ -280,7 +289,8 @@ class DreamBoothDataset(Dataset):
         center_crop=False,
         num_class_images=None,
         pad_tokens=False,
-        hflip=False
+        hflip=False,
+        image_captions=False
     ):
         self.size = size
         self.center_crop = center_crop
@@ -313,6 +323,7 @@ class DreamBoothDataset(Dataset):
                 transforms.Normalize([0.5], [0.5]),
             ]
         )
+        self.image_captions = image_captions
 
     def __len__(self):
         return self._length
@@ -321,6 +332,8 @@ class DreamBoothDataset(Dataset):
         example = {}
         instance_path, instance_prompt = self.instance_images_path[index % self.num_instance_images]
         instance_image = Image.open(instance_path)
+        instance_prompt = instance_path.stem.split('.')[0] if self.image_captions else instance_prompt
+        
         if not instance_image.mode == "RGB":
             instance_image = instance_image.convert("RGB")
         example["instance_images"] = self.image_transforms(instance_image)
@@ -562,7 +575,8 @@ def main(args):
         center_crop=args.center_crop,
         num_class_images=args.num_class_images,
         pad_tokens=args.pad_tokens,
-        hflip=args.hflip
+        hflip=args.hflip,
+        image_captions=args.image_captions
     )
 
     def collate_fn(examples):
